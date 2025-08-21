@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PRBS Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background: #f7f7f7;
+      color: #222;
+    }
+    h1 {
+      color: #3366cc;
+    }
+    .container {
+      background: #fff;
+      padding: 24px 32px 32px 32px;
+      max-width: 600px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    }
+    label, select, input, button {
+      font-size: 1rem;
+      margin: 8px 0;
+      display: block;
+    }
+    textarea {
+      margin-top: 14px;
+      width: 100%;
+      min-height: 120px;
+      font-family: monospace;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      padding: 8px;
+      background: #f3f3f3;
+    }
+    .note {
+      font-size: 0.95rem;
+      color: #777;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>PRBS Generator</h1>
+    <form id="prbsForm" autocomplete="off">
+      <label for="prbsType">Select PRBS type:</label>
+      <select id="prbsType" name="prbsType">
+        <option value="7">PRBS-7</option>
+        <option value="16">PRBS-16</option>
+        <option value="31">PRBS-31</option>
+      </select>
+      <label for="length">Number of bits to generate:</label>
+      <input type="number" id="length" name="length" min="1" max="1000000" value="127" required>
+      <div class="note">PRBS-7 period: 127, PRBS-16: 65535, PRBS-31: 2,147,483,647</div>
+      <button type="submit">Generate PRBS</button>
+    </form>
+    <label for="output">Output:</label>
+    <textarea id="output" readonly placeholder="Your PRBS sequence will appear here..."></textarea>
+  </div>
+  <script>
+    // Taps for maximal-length LFSR (XNOR for output)
+    const PRBS_TAPS = {
+      7:   [7, 6],           // x^7 + x^6 + 1
+      16:  [16, 14, 13, 11], // x^16 + x^14 + x^13 + x^11 + 1
+      31:  [31, 28],         // x^31 + x^28 + 1
+    };
+
+    function generatePRBS(order, taps, length) {
+      let lfsr = (1 << order) - 1; // initial state: all ones
+      const prbs = [];
+      for (let i = 0; i < length; i++) {
+        let bit = 0;
+        taps.forEach(tap => bit ^= (lfsr >> (order - tap)) & 1);
+        prbs.push(lfsr & 1);
+        lfsr = ((lfsr >> 1) | (bit << (order - 1))) >>> 0;
+      }
+      return prbs.join('');
+    }
+
+    document.getElementById('prbsForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const prbsType = document.getElementById('prbsType').value;
+      const length = parseInt(document.getElementById('length').value, 10);
+      let maxLen = (prbsType == 31) ? 0x7FFFFFFF : ((1 << prbsType) - 1);
+      if (length < 1 || length > maxLen) {
+        alert(`Length must be between 1 and ${maxLen} for PRBS-${prbsType}`);
+        return;
+      }
+      const taps = PRBS_TAPS[prbsType];
+      const prbs = generatePRBS(Number(prbsType), taps, length);
+      document.getElementById('output').value = prbs;
+    });
+  </script>
+</body>
+</html>
