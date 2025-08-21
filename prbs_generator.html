@@ -53,8 +53,10 @@
         <option value="16">PRBS-16</option>
         <option value="31">PRBS-31</option>
       </select>
-      <label for="length">Number of bits to generate:</label>
-      <input type="number" id="length" name="length" min="1" max="1000000" value="127" required>
+  <label for="seed">Initial seed (binary, e.g. 1111111):</label>
+  <input type="text" id="seed" name="seed" value="1111111" required>
+  <label for="length">Number of bits to generate:</label>
+  <input type="number" id="length" name="length" min="1" max="1000000" value="127" required>
       <div class="note">PRBS-7 period: 127, PRBS-16: 65535, PRBS-31: 2,147,483,647</div>
       <button type="submit">Generate PRBS</button>
     </form>
@@ -69,8 +71,8 @@
       31:  [31, 28],         // x^31 + x^28 + 1
     };
 
-    function generatePRBS(order, taps, length) {
-      let lfsr = (1 << order) - 1; // initial state: all ones
+    function generatePRBS(order, taps, length, seed) {
+      let lfsr = seed;
       const prbs = [];
       for (let i = 0; i < length; i++) {
         let bit = 0;
@@ -90,8 +92,20 @@
         alert(`Length must be between 1 and ${maxLen} for PRBS-${prbsType}`);
         return;
       }
+      // Get taps
       const taps = PRBS_TAPS[prbsType];
-      const prbs = generatePRBS(Number(prbsType), taps, length);
+      // Get seed from user input
+      let seedStr = document.getElementById('seed').value.trim();
+      if (!/^[01]+$/.test(seedStr) || seedStr.length !== Number(prbsType)) {
+        alert(`Seed must be a binary string of length ${prbsType}`);
+        return;
+      }
+      let seed = parseInt(seedStr, 2);
+      if (seed === 0) {
+        alert('Seed must not be all zeros.');
+        return;
+      }
+      const prbs = generatePRBS(Number(prbsType), taps, length, seed);
       document.getElementById('output').value = prbs;
     });
   </script>
